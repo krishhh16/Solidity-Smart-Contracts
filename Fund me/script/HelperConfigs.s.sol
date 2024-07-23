@@ -29,6 +29,10 @@ contract HelperContract is Script {
 
     
     function getAnvilEthConfigs() public returns (NetworkConfigs memory) {
+        if (activeNetworkConfigs.priceFeed != address(0)) {
+            return activeNetworkConfigs;
+        }
+
         vm.startBroadcast();
         MockV3Aggregator mockv3agg = new MockV3Aggregator(DECIMALS, INTIALS);
         vm.stopBroadcast();

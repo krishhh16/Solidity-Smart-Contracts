@@ -1,0 +1,2 @@
+alias compile="forge compile"
+
