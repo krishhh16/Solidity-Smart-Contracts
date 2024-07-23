@@ -24,7 +24,7 @@ contract FundMeTest is Test{
     }
 
     function testOwnerIsMsgSender() view public{
-        assertEq(fundMe.i_owner(), msg.sender);
+        assertEq(fundMe.getOwner(), msg.sender);
     }
 
     function testPriceFeedVersionIsAccurate()view public{
@@ -37,10 +37,23 @@ contract FundMeTest is Test{
         fundMe.withdraw();
     }
 
-    function testWhetherTheUserHasEnoughEth() public {
-        vm.prank(User); //sends the transaction as address User
+    modifier sendFunds() {
+        vm.prank(User);
         fundMe.fund{value: 0.1 ether}();
+        _;
+    }
 
+    function testWhetherTheUserHasEnoughEth() public sendFunds {
         assertEq(fundMe.getAddressToAmount(User), 0.1 ether);
+    }
+
+    function testFunderExists() public sendFunds {
+        assertEq(fundMe.getFunder(0), User);
+    }
+
+    function testOnlyOwnerCanWithdraw() public sendFunds {
+        vm.prank(User);
+        vm.expectRevert();
+        fundMe.withdraw();
     }
 }

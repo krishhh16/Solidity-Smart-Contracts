@@ -16,7 +16,7 @@ contract FundMe {
     address[] private s_funders;
 
     // Could we make this constant?  /* hint: no! We should make it immutable! */
-    address public /* immutable */ i_owner;
+    address private /* immutable */ i_owner;
     uint256 public constant MINIMUM_USD = 5 * 10 ** 18;
 
     constructor(address _priceFeed) {
@@ -84,7 +84,14 @@ contract FundMe {
         return s_addressToAmountFunded[_address];
     }
 
-    
+    function getFunder(uint256 _index) external view returns (address) {
+        return s_funders[_index];
+    }
+
+    function getOwner() external view returns (address) {
+        return i_owner;  
+    }
+
 }
 
 // Concepts we didn't cover yet (will cover in later sections)
