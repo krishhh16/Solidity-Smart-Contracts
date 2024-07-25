@@ -1,3 +1,24 @@
+// Layout of Contract:
+// version
+// imports
+// errors
+// interfaces, libraries, contracts
+// Type declarations
+// State variables
+// Events
+// Modifiers
+// Functions
+
+// Layout of Functions:
+// constructor
+// receive function (if exists)
+// fallback function (if exists)
+// external
+// public
+// internal
+// private
+// view & pure functions
+
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
 
@@ -11,8 +32,20 @@ import {VRFV2PlusClient} from "lib/chainlink-brownie-contracts/contracts/src/v0.
  */
 
 contract RaffleContract is VRFConsumerBaseV2Plus {
-    error Raffle_NotEnoughCashStranger();
+    /*Error types*/
+    error Raffle__NotEnoughCashStranger();
+    error Raffle__TransactionFailed();
+    error RaffleNotOpen();
+    error RaffleHasNotEnded();
 
+    /*Type Declaration*/
+    enum RaffleIsOpen {
+        OPEN,
+        CALCULATING
+    }
+
+
+    /*State Variables */
     uint immutable s_entranceFee;
     address payable[] s_participants;
     // @dev duration of lottery in seconds
@@ -23,6 +56,8 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     bytes32 private immutable i_keyHash;
     uint private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
+    address payable mostRecentWinner;
+    RaffleIsOpen raffleOpen;
 
     event RaffleEntered();
 
@@ -34,17 +69,19 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         uint32 callbackGasLimit,
         bytes32 keyHash
         ) VRFConsumerBaseV2Plus(_vrfCoordinator) {
-        s_entranceFee = _entranceFee;
         i_interval = interval;
-        s_lastTimestamp = block.timestamp;
         i_subscriptionId = subscriptionId;
         i_keyHash = keyHash;
         i_callbackGasLimit = callbackGasLimit;
+        
+        s_entranceFee = _entranceFee;
+        s_lastTimestamp = block.timestamp;
+        raffleOpen = RaffleIsOpen.OPEN;
     }
 
     function enterRaffle() external payable {
         if(msg.value < s_entranceFee) {
-            revert Raffle_NotEnoughCashStranger();
+            revert Raffle__NotEnoughCashStranger();
         }
         s_participants.push(payable(msg.sender));
 
@@ -53,8 +90,12 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
 
     function prizeWinner() external {
         if((block.timestamp - s_lastTimestamp) < i_interval ){
-            revert();
+            revert RaffleHasNotEnded();
         }
+        if (raffleOpen != RaffleIsOpen.OPEN ){
+            revert RaffleNotOpen();
+        }
+
         uint requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
@@ -68,10 +109,23 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
                 )
             })
         );
+        raffleOpen = RaffleIsOpen.CALCULATING;
 
     }
 
-     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override{}
+     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override{
+        // Pick a random number between 0 and the length of the participants array
+        address payable recentWinner = s_participants[randomWords[0] % s_participants.length];
+        mostRecentWinner = recentWinner;
+
+        raffleOpen = RaffleIsOpen.OPEN;
+        (bool success,) = recentWinner.call{value: address(this).balance}("");
+
+        if(!success) {
+            revert Raffle__TransactionFailed();
+        } 
+
+     }
     /*
      * Getter functions are defined from this line forward
      */
