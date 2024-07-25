@@ -19,6 +19,9 @@ contract RaffleTest is Test {
     address public User = makeAddr("person");
     uint public constant STARTING_BALANCE = 10 ether;
 
+    event RaffleEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
+
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
         (raffle, helperConfig) = deployer.deployContract();
@@ -30,9 +33,46 @@ contract RaffleTest is Test {
         subscriptionId = configs.subscriptionId;
         callbackGasLimit = configs.callbackGasLimit;
         keyHash = configs.keyHash;
+
+        vm.deal(User, STARTING_BALANCE);
     }
 
     function testRaffleInitializesToOpen() external view {
         assert(raffle.getRaffleState() == RaffleContract.RaffleIsOpen.OPEN);
+    }
+
+    function testShouldRevertIfMoneyNotEnough() public {
+        vm.prank(User);
+        vm.expectRevert(RaffleContract.Raffle__NotEnoughCashStranger.selector);
+        raffle.enterRaffle();
+    }
+
+    function testShouldIncrementTheParticipants() public {
+        vm.prank(User);
+        raffle.enterRaffle{value: entranceFee}();
+
+        address participantAddress = raffle.getParticipantsFromIndex(0);
+
+        assert(participantAddress == User);
+    }
+
+    function testEnteringRaffleEmitsEvent() public {
+        vm.prank(User);
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit RaffleEntered(User);
+
+        raffle.enterRaffle{value: entranceFee}();
+    }
+    
+    function testDontAllowPlayersToEnterWhileRaffleCalculating() public {
+        vm.prank(User);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        raffle.performUpkeep("");
+
+        vm.expectRevert();
+        vm.prank(User);
+        raffle.enterRaffle{value: entranceFee}();
     }
 }

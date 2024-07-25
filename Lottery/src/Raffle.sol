@@ -62,7 +62,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
 
     /*Events*/
 
-    event RaffleEntered();
+    event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
 
     constructor(
@@ -89,7 +89,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         }
         s_participants.push(payable(msg.sender));
 
-        emit RaffleEntered();
+        emit RaffleEntered(msg.sender);
     }
 
     function checkUpkeep(
@@ -181,5 +181,9 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
 
     function getRaffleState() external view returns (RaffleIsOpen) {
         return raffleOpen;
+    }
+    
+    function getParticipantsFromIndex(uint index) external view returns (address) {
+        return s_participants[index];
     }
 }
