@@ -38,7 +38,11 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     error Raffle__TransactionFailed();
     error Raffle__RaffleNotOpen();
     error RaffleHasNotEnded();
-    error Raffle_UpkeepNotNeeded(uint balance, uint participantsLength, RaffleIsOpen raffleIsOpen);
+    error Raffle_UpkeepNotNeeded(
+        uint balance,
+        uint participantsLength,
+        RaffleIsOpen raffleIsOpen
+    );
 
     /*Type Declaration*/
     enum RaffleIsOpen {
@@ -87,7 +91,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         if (msg.value < s_entranceFee) {
             revert Raffle__NotEnoughCashStranger();
         }
-        if (raffleOpen != RaffleIsOpen.OPEN){
+        if (raffleOpen != RaffleIsOpen.OPEN) {
             revert Raffle__RaffleNotOpen();
         }
 
@@ -99,19 +103,28 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     function checkUpkeep(
         bytes memory
     ) public view returns (bool upkeepNeeded, bytes memory) {
-        bool timeHasPassed = ((block.timestamp - s_lastTimestamp) >= i_interval);
+        bool timeHasPassed = ((block.timestamp - s_lastTimestamp) >=
+            i_interval);
         bool isOpen = raffleOpen == RaffleIsOpen.OPEN;
         bool participantsExists = s_participants.length > 0;
         bool hasBalance = address(this).balance > 0;
 
-        upkeepNeeded = timeHasPassed && isOpen && participantsExists && hasBalance;
+        upkeepNeeded =
+            timeHasPassed &&
+            isOpen &&
+            participantsExists &&
+            hasBalance;
         return (upkeepNeeded, "");
     }
 
     function performUpkeep(bytes calldata) external {
-        (bool upkeepNeeded,) = checkUpkeep("");
-        if(!upkeepNeeded) {
-            revert Raffle_UpkeepNotNeeded(address(this).balance, s_participants.length, raffleOpen);
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle_UpkeepNotNeeded(
+                address(this).balance,
+                s_participants.length,
+                raffleOpen
+            );
         }
 
         raffleOpen = RaffleIsOpen.CALCULATING;
@@ -128,7 +141,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
                 )
             })
         );
-   }
+    }
 
     function prizeWinner() external {
         if ((block.timestamp - s_lastTimestamp) < i_interval) {
@@ -186,8 +199,10 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     function getRaffleState() external view returns (RaffleIsOpen) {
         return raffleOpen;
     }
-    
-    function getParticipantsFromIndex(uint index) external view returns (address) {
+
+    function getParticipantsFromIndex(
+        uint index
+    ) external view returns (address) {
         return s_participants[index];
     }
 }
