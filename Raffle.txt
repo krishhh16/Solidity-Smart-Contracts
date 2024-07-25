@@ -58,7 +58,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     uint private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
     address payable mostRecentWinner;
-    RaffleIsOpen private raffleOpen;
+    RaffleIsOpen raffleOpen;
 
     /*Events*/
 
@@ -177,9 +177,5 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
      */
     function getEntranceFee() external view returns (uint) {
         return s_entranceFee;
-    }
-
-    function getRaffleState() external view returns (RaffleIsOpen) {
-        return raffleOpen;
     }
 }
