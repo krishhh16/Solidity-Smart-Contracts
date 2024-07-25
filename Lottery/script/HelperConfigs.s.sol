@@ -31,6 +31,10 @@ contract HelperConfigs is ConstantVariables, Script {
         networkConfigs[ETH_SEPOLIA_CHAINID] = getSepoliaEthConfigs();
     }
 
+    function getConfigs() external returns(NetworkConfigs memory) {
+        return getConfigsByChainId(block.chainid);
+    }
+
     function getConfigsByChainId(uint chainId) public returns(NetworkConfigs memory) {
         if (networkConfigs[chainId].vrfCoordinator != address(0)){
             return networkConfigs[chainId];
