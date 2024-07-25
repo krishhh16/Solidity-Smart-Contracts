@@ -36,7 +36,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     /*Error types*/
     error Raffle__NotEnoughCashStranger();
     error Raffle__TransactionFailed();
-    error RaffleNotOpen();
+    error Raffle__RaffleNotOpen();
     error RaffleHasNotEnded();
     error Raffle_UpkeepNotNeeded(uint balance, uint participantsLength, RaffleIsOpen raffleIsOpen);
 
@@ -87,6 +87,10 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         if (msg.value < s_entranceFee) {
             revert Raffle__NotEnoughCashStranger();
         }
+        if (raffleOpen != RaffleIsOpen.OPEN){
+            revert Raffle__RaffleNotOpen();
+        }
+
         s_participants.push(payable(msg.sender));
 
         emit RaffleEntered(msg.sender);
@@ -131,7 +135,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
             revert RaffleHasNotEnded();
         }
         if (raffleOpen != RaffleIsOpen.OPEN) {
-            revert RaffleNotOpen();
+            revert Raffle__RaffleNotOpen();
         }
 
         raffleOpen = RaffleIsOpen.CALCULATING;
