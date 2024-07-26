@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DeployRaffle} from "script/DeployRaffle.s.sol";
 import {RaffleContract} from "src/Raffle.sol";
 import {HelperConfigs} from "script/HelperConfigs.s.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract RaffleTest is Test {
     RaffleContract public raffle;
@@ -63,12 +64,16 @@ contract RaffleTest is Test {
 
         raffle.enterRaffle{value: entranceFee}();
     }
-    
-    function testDontAllowPlayersToEnterWhileRaffleCalculating() public {
+
+    modifier raffleEntered() {
         vm.prank(User);
         raffle.enterRaffle{value: entranceFee}();
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
+        _;
+    }
+    
+    function testDontAllowPlayersToEnterWhileRaffleCalculating() public raffleEntered {
         raffle.performUpkeep("");
 
         vm.expectRevert(RaffleContract.Raffle__RaffleNotOpen.selector);
@@ -95,13 +100,7 @@ contract RaffleTest is Test {
         assert(!upkeepNeeded);
     }
 
-     function testCheckUpkeepReturnsTrueWhenParametersGood() public {
-        
-        vm.prank(User);
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1);
-        vm.roll(block.number + 1);
-
+     function testCheckUpkeepReturnsTrueWhenParametersGood() public raffleEntered {
         (bool upkeepNeeded,) = raffle.checkUpkeep("");
 
         assert(upkeepNeeded);
@@ -123,4 +122,18 @@ contract RaffleTest is Test {
         );
         raffle.performUpkeep("");
     }
+
+    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId() public  raffleEntered{
+
+        vm.recordLogs();
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+
+        RaffleContract.RaffleIsOpen raffleState = raffle.getRaffleState();
+        assert(uint256(requestId) > 0);
+        assert(uint(raffleState) == 1);
+    }
+
+    
 }
