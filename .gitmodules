@@ -10,3 +10,6 @@
 [submodule "Lottery/lib/foundry-devops"]
 	path = Lottery/lib/foundry-devops
 	url = https://github.com/Cyfrin/foundry-devops
+[submodule "Token/lib/openzeppelin-contracts"]
+	path = Token/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
