@@ -51,7 +51,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
     }
 
     /*State Variables */
-    uint immutable s_entranceFee;
+    uint immutable i_entranceFee;
     address payable[] s_participants;
     // @dev duration of lottery in seconds
     uint immutable i_interval;
@@ -83,13 +83,13 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         i_keyHash = keyHash;
         i_callbackGasLimit = callbackGasLimit;
 
-        s_entranceFee = _entranceFee;
+        i_entranceFee = _entranceFee;
         s_lastTimestamp = block.timestamp;
         raffleOpen = RaffleIsOpen.OPEN;
     }
 
     function enterRaffle() external payable {
-        if (msg.value < s_entranceFee) {
+        if (msg.value < i_entranceFee) {
             revert Raffle__NotEnoughCashStranger();
         }
         if (raffleOpen != RaffleIsOpen.OPEN) {
@@ -144,8 +144,6 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         );
 
         emit RequestedRaffleWinner(requestId);
-
-
     }
 
     function prizeWinner() external {
@@ -198,7 +196,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
      * Getter functions are defined from this line forward
      */
     function getEntranceFee() external view returns (uint) {
-        return s_entranceFee;
+        return i_entranceFee;
     }
 
     function getRaffleState() external view returns (RaffleIsOpen) {
@@ -209,5 +207,13 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         uint index
     ) external view returns (address) {
         return s_participants[index];
+    }
+
+    function getLastTimestamp() external view returns(uint) {
+           return s_lastTimestamp;
+    }
+
+    function getRecentWinner() external view returns(address) {
+        return mostRecentWinner;
     }
 }
