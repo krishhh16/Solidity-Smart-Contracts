@@ -24,6 +24,7 @@ contract HelperConfigs is ConstantVariables, Script {
         uint32 callbackGasLimit;
         bytes32 keyHash;
         address link;
+        address account;
     }
 
     NetworkConfigs localNetworkConfig;
@@ -55,7 +56,8 @@ contract HelperConfigs is ConstantVariables, Script {
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGasLimit: 500000,
             subscriptionId: 83953620150640821931143417501646584112286897284169140199126694328503757470924,
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+            account:0xFe90F5D265c2B21824268eb51E1CFfB212EDC9d9
         });
     } 
 
@@ -76,7 +78,8 @@ contract HelperConfigs is ConstantVariables, Script {
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGasLimit: 500000,
             subscriptionId: 0,
-            link: address(linkToken)
+            link: address(linkToken),
+            account: 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38
         });
     }
 }
