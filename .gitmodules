@@ -13,3 +13,6 @@
 [submodule "Token/lib/openzeppelin-contracts"]
 	path = Token/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "NFT-Project/lib/openzeppelin-contracts"]
+	path = NFT-Project/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
