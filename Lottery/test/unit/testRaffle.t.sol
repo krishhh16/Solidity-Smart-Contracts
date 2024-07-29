@@ -136,7 +136,6 @@ contract RaffleTest is Test {
 
         assert(uint(raffleState) > 0);
         assert(uint(raffleState) == 1);
-
     }
 
     function testFulfillrandomWordsPicksAWinnerResetsAndSendsMoney() public raffleEntered{

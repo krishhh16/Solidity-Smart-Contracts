@@ -3,7 +3,8 @@ pragma solidity ^0.8.18;
 import {Script} from "forge-std/Script.sol";
 import {NFT} from "src/NFT.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
-
+import {DynamicNFT} from "src/DynamicNFT.sol";
+import {console} from "forge-std/console.sol";
 
 contract MintBasicNFT is Script {
     string public constant PUG_URI =
