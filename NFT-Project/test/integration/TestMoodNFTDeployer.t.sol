@@ -44,9 +44,4 @@ contract TestDeployDynamicNFT is Test {
         assert(dynamiContract.getTokenCounts() == 1);
         assert(dynamiContract.getTokenIdToOwner(0) == USER);
     }
-
-
-    
-
-    
 }
