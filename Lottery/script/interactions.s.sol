@@ -17,22 +17,21 @@ contract CreateSubscription is Script, ConstantVariables {
         return (subId, vrfCoordinator);
     }
 
-    function createSubscription(
-        address vrfCoordinator,
-        address account
-    ) public returns (uint, address) {
-        console.log("Creating subscription on chain Id: ", block.chainid);
-        vm.startBroadcast(account);
-        uint subId = VRFCoordinatorV2_5Mock(vrfCoordinator)
-            .createSubscription();
-        vm.stopBroadcast();
+        function createSubscription(
+            address vrfCoordinator,
+            address account
+        ) public returns (uint, address) {
+            console.log("Creating subscription on chain Id: ", block.chainid);
+            vm.startBroadcast(account);
+            uint subId = VRFCoordinatorV2_5Mock(vrfCoordinator).createSubscription();
+            vm.stopBroadcast();
 
-        console.log("your subscription id is: ", subId);
-        console.log(
-            "Please update the subscription id in your HelperConfigs.s.sol"
-        );
-        return (subId, vrfCoordinator);
-    }
+            console.log("your subscription id is: ", subId);
+            console.log(
+                "Please update the subscription id in your HelperConfigs.s.sol"
+            );
+            return (subId, vrfCoordinator);
+        }
 
     function run() public {
         createSubscriptionUsingConfig();
