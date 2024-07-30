@@ -34,7 +34,9 @@ contract RaffleTest is Test {
         vrfCoordinator = configs.vrfCoordinator;
         subscriptionId = configs.subscriptionId;
         callbackGasLimit = configs.callbackGasLimit;
-        keyHash = configs.keyHash;
+        keyHash = configs.keyHash;  
+
+        console.log("Setup's subId", subscriptionId);
 
         vm.deal(User, STARTING_BALANCE);
     }
@@ -152,12 +154,13 @@ contract RaffleTest is Test {
         uint startingTimestamp = raffle.getLastTimestamp();
         uint winnerStartingBalance = expectedWinner.balance;
 
+        console.log("Starting to take logs now");
         vm.recordLogs();
         raffle.performUpkeep("");
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        bytes32 requesId = entries[1].topics[1];
-        console.log("REquest Id: " , uint(entries[1].topics[1]));
-        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(uint256(requesId), address(raffle));
+        bytes32 requestId = entries[1].topics[1];
+        console.log("Request id and address and vrfCoordinator for fulfillRandomWords: ",uint256(requestId), address(raffle), vrfCoordinator);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(uint256(requestId), address(raffle));
 
         address recentWinner = raffle.getRecentWinner();
         RaffleContract.RaffleIsOpen raffleState = raffle.getRaffleState();

@@ -37,6 +37,8 @@ contract DeployRaffle is Script {
 
         AddConsumers addconsumer = new AddConsumers();
         addconsumer.addConsumer(address(raffle), configs.vrfCoordinator, configs.subscriptionId,configs.account);
+        console.log("/////////", helperConfigs.getConfigs().vrfCoordinator);
+
         return (raffle, helperConfigs);
     }
     function run() public {

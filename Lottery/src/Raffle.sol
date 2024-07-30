@@ -43,6 +43,7 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         uint participantsLength,
         RaffleIsOpen raffleIsOpen
     );
+    error Raffle__WinnerTransactionFailed();
 
     /*Type Declaration*/
     enum RaffleIsOpen {
@@ -118,32 +119,46 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         return (upkeepNeeded, "");
     }
 
-    function performUpkeep(bytes calldata) external {
-        (bool upkeepNeeded, ) = checkUpkeep("");
+    function performUpkeep(bytes calldata /* performData */ ) external {
+        (bool upkeepNeeded,) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffle_UpkeepNotNeeded(
-                address(this).balance,
-                s_participants.length,
-                raffleOpen
-            );
+            revert Raffle_UpkeepNotNeeded(address(this).balance, s_participants.length, raffleOpen); //Params are passed to give more info about revert
         }
 
         raffleOpen = RaffleIsOpen.CALCULATING;
-        uint requestId = s_vrfCoordinator.requestRandomWords(
-            VRFV2PlusClient.RandomWordsRequest({
-                keyHash: i_keyHash,
-                subId: i_subscriptionId,
-                requestConfirmations: REQUEST_CONFIRMATION,
-                callbackGasLimit: i_callbackGasLimit,
-                numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(
-                    // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
-                )
-            })
-        );
 
+        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
+            keyHash: i_keyHash,
+            subId: i_subscriptionId,
+            requestConfirmations: REQUEST_CONFIRMATION,
+            callbackGasLimit: i_callbackGasLimit,
+            numWords: NUM_WORDS,
+            // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+            extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
+        });
+
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
         emit RequestedRaffleWinner(requestId);
+    }
+
+    function fulfillRandomWords(uint256, /*requestId */ uint256[] calldata randomWords) internal virtual override {
+        //First comes checks
+
+        //Internal state changes
+        uint256 indexOfWinner = randomWords[0] % s_participants.length;
+        address payable recentWinner = s_participants[indexOfWinner];
+        mostRecentWinner = recentWinner;
+
+        raffleOpen = RaffleIsOpen.OPEN;
+        s_participants = new address payable[](0);
+        s_lastTimestamp = block.timestamp;
+        emit WinnerPicked(mostRecentWinner);
+
+        //External Interactions
+        (bool success,) = recentWinner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Raffle__WinnerTransactionFailed();
+        }
     }
 
     function prizeWinner() external {
@@ -170,27 +185,27 @@ contract RaffleContract is VRFConsumerBaseV2Plus {
         );
     }
 
-    function fulfillRandomWords(
-        uint256, //requestId,
-        uint256[] calldata randomWords
-    ) internal override {
-        // Pick a random number between 0 and the length of the participants array
-        address payable recentWinner = s_participants[
-            randomWords[0] % s_participants.length
-        ];
-        mostRecentWinner = recentWinner;
+    // function fulfillRandomWords(
+    //     uint256, //requestId,
+    //     uint256[] calldata randomWords
+    // ) internal override {
+    //     // Pick a random number between 0 and the length of the participants array
+    //     address payable recentWinner = s_participants[
+    //         randomWords[0] % s_participants.length
+    //     ];
+    //     mostRecentWinner = recentWinner;
 
-        raffleOpen = RaffleIsOpen.OPEN;
-        s_participants = new address payable[](0);
-        s_lastTimestamp = block.timestamp;
+    //     raffleOpen = RaffleIsOpen.OPEN;
+    //     s_participants = new address payable[](0);
+    //     s_lastTimestamp = block.timestamp;
 
-        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+    //     (bool success, ) = recentWinner.call{value: address(this).balance}("");
 
-        if (!success) {
-            revert Raffle__TransactionFailed();
-        }
-        emit WinnerPicked(mostRecentWinner);
-    }
+    //     if (!success) {
+    //         revert Raffle__TransactionFailed();
+    //     }
+    //     emit WinnerPicked(mostRecentWinner);
+    // }
 
     /*
      * Getter functions are defined from this line forward
