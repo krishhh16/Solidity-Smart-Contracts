@@ -101,7 +101,7 @@ contract DSCEngine is ReentrancyGuard {
         mintDsc(amountDscToMint);
     }
 
-    function redeemToken(address token, uint amountCollatoral) external checkPositive(amountCollatoral) nonReentrant {
+    function redeemToken(address token, uint amountCollatoral) public checkPositive(amountCollatoral) nonReentrant {
         s_amountDeposited[msg.sender][token] -= amountCollatoral;
 
         emit CollatoralRedeemed(msg.sender, token, amountCollatoral);
@@ -110,6 +110,22 @@ contract DSCEngine is ReentrancyGuard {
             revert DSCEngine__TransferFailed();
         }
         _revertIfHealthOfAccountIsBroken(msg.sender);
+    }
+
+    function burnDsc(uint amountToBurn) public checkPositive(amountToBurn) {
+        s_tokenMinted[msg.sender] -= amountToBurn;
+        bool success = i_dscToken.transferFrom(msg.sender, address(this), amountToBurn);
+        if (!success){
+            revert DSCEngine__TransferFailed();
+        }
+        i_dscToken.burn(amountToBurn);
+        _revertIfHealthOfAccountIsBroken(msg.sender);
+    }
+
+    function redeemCollatoralForDsc(address token, uint amountToRedeem, uint amountToBurn) external {
+        redeemToken(token, amountToRedeem);
+        burnDsc(amountToBurn);
+
     }
 
     function depositeCollatoral(
