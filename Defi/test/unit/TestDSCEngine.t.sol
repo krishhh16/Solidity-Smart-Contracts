@@ -37,5 +37,6 @@ contract TestDefiStableCoin is Test {
 
         vm.expectRevert();
         engine.depositeCollatoral(weth, 0);
+        vm.stopPrank();
     }
 }

@@ -95,11 +95,15 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////////
     ///External Functions///
     ////////////////////////
+    function depositeAndMintCollatoral(address tokenCollatoralAddress, uint amountCollatoral, uint amountDscToMint) public {
+        depositeCollatoral(tokenCollatoralAddress, amountCollatoral);
+        mintDsc(amountDscToMint);
+    }
 
     function depositeCollatoral(
         address _toAddress,
         uint _amount
-    ) external checkPositive(_amount) tokenAllowed(_toAddress) nonReentrant {
+    ) public checkPositive(_amount) tokenAllowed(_toAddress) nonReentrant {
         s_amountDeposited[msg.sender][_toAddress] = _amount;
         emit CollatoralDeposited(msg.sender, _toAddress, _amount);
         bool success = IERC20(_toAddress).transferFrom(msg.sender, address(this), _amount);
@@ -109,7 +113,7 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-    function mintDsc(uint256 amountDscToMint) external checkPositive(amountDscToMint) nonReentrant {
+    function mintDsc(uint256 amountDscToMint) public checkPositive(amountDscToMint) nonReentrant {
         s_tokenMinted[msg.sender] += amountDscToMint;
 
         _revertIfHealthOfAccountIsBroken(msg.sender);
