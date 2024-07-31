@@ -34,6 +34,7 @@ contract DSCEngine is ReentrancyGuard {
     /// State Variables ////
     ////////////////////////
     mapping(address token => address collatoralToken) private s_priceFeed;
+    mapping (address user => uint tokenMinted) private s_tokenMinted;
     /**
      * @dev This is the collatoral deposited by the user 
      * colOwner -> Owner of the collatoral
@@ -41,7 +42,7 @@ contract DSCEngine is ReentrancyGuard {
      * amount -> the amount of collatoral colOwner is willing to deposit
      */
     mapping(address colOwner => mapping(address tokenId => uint amount)) private s_amountDeposited;
-    
+    address[] private s_tokenAddress;
     DefiProtocol private immutable i_dscToken;
     
     /////////////////////
@@ -76,6 +77,7 @@ contract DSCEngine is ReentrancyGuard {
 
         for (uint i = 0; i < tokenAddress.length; i++) {
             s_priceFeed[tokenAddress[i]] = collatoralAddress[i];
+            s_tokenAddress.push(tokenAddress[i]);
         }
         i_dscToken = DefiProtocol(dscAddress);
     }
@@ -95,5 +97,37 @@ contract DSCEngine is ReentrancyGuard {
         if (!success) {
             revert DSCEngine__TransferFailed();
         }
+    }
+
+    function mintDsc(uint256 amountDscToMint) external checkPositive(amountDscToMint) nonReentrant {
+        s_tokenMinted[msg.sender] += amountDscToMint;
+
+        _revertIfHealthOfAccountIsBroken(msg.sender);
+    }
+    /////////////////////////////////
+    ///Internal/Private view Functions///
+    ///////////////////////////////
+
+    function _revertIfHealthOfAccountIsBroken(address user) internal view {
+
+    } 
+
+    function _healthOfAccount(address user) private view returns(uint) {
+        (uint dscMintedValue, uint collatoralDepositedInUSD) = _getAccountDetails(user);
+    }
+
+    /////////////////////////////////
+    ///Public view  Functions    ///
+    ///////////////////////////////
+    function _getAccountDetails(address _user) public view returns(uint, uint) {
+        for(uint i= 0;  i< s_tokenAddress.length; i++) {
+            address token = s_tokenAddress[i];
+            uint amount = s_amountDeposited[_user][token];
+            getTokenPriceInUSD(token, amount);
+        } 
+    }
+
+    function getTokenPriceInUSD(address _token, uint _amount) public view returns(uint) {
+
     }
 }
