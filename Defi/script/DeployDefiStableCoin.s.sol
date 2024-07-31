@@ -3,16 +3,34 @@ pragma solidity ^0.8.18;
 
 import {Script} from "forge-std/Script.sol";
 import {DefiProtocol} from "src/DefiStableCoin.sol";
+import {DSCEngine} from "src/DSCEngine.sol";
+import {HelperConfigs} from "./HelperConfigs.s.sol";
 
 contract DeployDefiProtocol is Script {
-    DefiProtocol defiContract;
+    address[] private tokenAddresses;
+    address[] private priceFeed;
 
-    function run() external returns(DefiProtocol) {
-        vm.startBroadcast();
-        defiContract = new DefiProtocol();
+    function run() external returns(DefiProtocol, DSCEngine) {
+        HelperConfigs configs = new HelperConfigs();
+        
+        (address wethUsdPriceFeed,
+        address wbtcUsdPriceFeed,
+        address weth,
+        address wbtc,
+        uint deployerKey) = configs.activeNetwork();
+
+        tokenAddresses = [weth, wbtc];
+        priceFeed = [wethUsdPriceFeed,wbtcUsdPriceFeed];
+        vm.startBroadcast(deployerKey);
+        DefiProtocol dsc = new DefiProtocol();
+        DSCEngine engine = new DSCEngine(
+            tokenAddresses,
+            priceFeed,
+            address(dsc)
+        );
         vm.stopBroadcast();
-        return defiContract;
-    }
 
+        return (dsc, engine);
+    }
 
 }
