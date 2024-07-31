@@ -34,12 +34,15 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TransferFailed();
     error DSCEngine__LiquidAccount(uint val);
     error DSCEngine__FailedToMint();
+    error DSCEngine__HealthFactorOk();
+    error DSCEngine__HealthOfUserNotImproved();
     ////////////////////////
     /// State Variables ////
     ////////////////////////
     uint constant private ADDITIONAL_FEED_PRECISION = 1e10;
     uint constant private PRECISION = 1e18;
     uint constant private MIN_HEALTH_FACTOR= 1;
+    uint constant private LIQUIDATION_BONUS= 10;
     mapping(address token => address collatoralToken) private s_priceFeed;
     mapping (address user => uint tokenMinted) private s_tokenMinted;
     uint constant private LIQUIDATION_PRECISION = 100;
@@ -59,7 +62,7 @@ contract DSCEngine is ReentrancyGuard {
     /// Events      ////
     ///////////////////
     event CollatoralDeposited(address indexed colOwner, address indexed tokenId, uint indexed amount);
-    event CollatoralRedeemed(address indexed from, address indexed token, uint indexed amount);
+    event CollatoralRedeemed(address indexed from, address indexed to, address indexed token, uint amount);
     ////////////////////////
     ///Modifiers //////////
     ////////////////////////
@@ -104,21 +107,12 @@ contract DSCEngine is ReentrancyGuard {
     function redeemToken(address token, uint amountCollatoral) public checkPositive(amountCollatoral) nonReentrant {
         s_amountDeposited[msg.sender][token] -= amountCollatoral;
 
-        emit CollatoralRedeemed(msg.sender, token, amountCollatoral);
-        bool success = IERC20(token).transfer(msg.sender, amountCollatoral);
-        if (!success) {
-            revert DSCEngine__TransferFailed();
-        }
+        _redeemCollateral(token, amountCollatoral, msg.sender, msg.sender);
         _revertIfHealthOfAccountIsBroken(msg.sender);
     }
 
     function burnDsc(uint amountToBurn) public checkPositive(amountToBurn) {
-        s_tokenMinted[msg.sender] -= amountToBurn;
-        bool success = i_dscToken.transferFrom(msg.sender, address(this), amountToBurn);
-        if (!success){
-            revert DSCEngine__TransferFailed();
-        }
-        i_dscToken.burn(amountToBurn);
+        _burnDsc(amountToBurn, msg.sender,msg.sender);
         _revertIfHealthOfAccountIsBroken(msg.sender);
     }
 
@@ -127,6 +121,39 @@ contract DSCEngine is ReentrancyGuard {
         burnDsc(amountToBurn);
 
     }
+
+    function liquidate(address collateral, address user, uint debtToCover) 
+    external 
+    checkPositive(debtToCover)
+    nonReentrant{
+        uint startingUserHealthFactor = _healthOfAccount(user);
+        if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
+            revert DSCEngine__HealthFactorOk();
+        }
+
+        uint tokenAmountFromDebtCovered = getTokenAmountFromUsd(collateral, debtToCover);
+
+        uint bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
+        uint totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
+
+        _redeemCollateral(collateral, totalCollateralToRedeem, user, msg.sender);
+        _burnDsc(debtToCover, user, msg.sender);
+
+        uint endingHealthBalance = _healthOfAccount(user);
+        if(endingHealthBalance <= startingUserHealthFactor) {
+            revert DSCEngine__HealthOfUserNotImproved();
+        }   
+        _revertIfHealthOfAccountIsBroken(msg.sender);
+    }
+
+
+    function getTokenAmountFromUsd(address token, uint usdAmountInWei) public view
+    returns (uint) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[token]);
+        (, int256 price, , , )  = priceFeed.latestRoundData();
+        return (usdAmountInWei * PRECISION) / uint(price) * ADDITIONAL_FEED_PRECISION;
+    }
+
 
     function depositeCollatoral(
         address _toAddress,
@@ -154,6 +181,26 @@ contract DSCEngine is ReentrancyGuard {
     /////////////////////////////////
     ///Internal/Private view Functions///
     ///////////////////////////////
+
+    function _burnDsc(uint amountToBurn, address onBehalfOf, address dscFrom) private {
+        s_tokenMinted[onBehalfOf] -= amountToBurn;
+        bool success = i_dscToken.transferFrom(dscFrom, address(this), amountToBurn);
+        if (!success){
+            revert DSCEngine__TransferFailed();
+        }
+        i_dscToken.burn(amountToBurn);
+    }
+
+    function _redeemCollateral(address token, uint amountCollatoral, address from, address to) private {
+        s_amountDeposited[from][token] -= amountCollatoral;
+
+        emit CollatoralRedeemed(from, to , token, amountCollatoral);
+        bool success = IERC20(token).transfer(msg.sender, amountCollatoral);
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
+        _revertIfHealthOfAccountIsBroken(msg.sender);
+    }
 
     function _revertIfHealthOfAccountIsBroken(address user) internal view {
         if (_healthOfAccount(user) < MIN_HEALTH_FACTOR){
