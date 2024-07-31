@@ -13,7 +13,7 @@ contract TestDefiStableCoin is Test {
 
     function setUp() external {
         deployScript = new DeployDefiProtocol();
-        defiContract = deployScript.run();
+        (defiContract,,) = deployScript.run();
     }
 
 }

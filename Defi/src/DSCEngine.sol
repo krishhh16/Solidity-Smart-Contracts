@@ -37,7 +37,7 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////////
     /// State Variables ////
     ////////////////////////
-    uint constant private ADDITIONAL_FEED_PRECISION = 1e8;
+    uint constant private ADDITIONAL_FEED_PRECISION = 1e10;
     uint constant private PRECISION = 1e18;
     uint constant private MIN_HEALTH_FACTOR= 1;
     mapping(address token => address collatoralToken) private s_priceFeed;
