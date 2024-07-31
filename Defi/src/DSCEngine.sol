@@ -59,6 +59,7 @@ contract DSCEngine is ReentrancyGuard {
     /// Events      ////
     ///////////////////
     event CollatoralDeposited(address indexed colOwner, address indexed tokenId, uint indexed amount);
+    event CollatoralRedeemed(address indexed from, address indexed token, uint indexed amount);
     ////////////////////////
     ///Modifiers //////////
     ////////////////////////
@@ -98,6 +99,17 @@ contract DSCEngine is ReentrancyGuard {
     function depositeAndMintCollatoral(address tokenCollatoralAddress, uint amountCollatoral, uint amountDscToMint) public {
         depositeCollatoral(tokenCollatoralAddress, amountCollatoral);
         mintDsc(amountDscToMint);
+    }
+
+    function redeemToken(address token, uint amountCollatoral) external checkPositive(amountCollatoral) nonReentrant {
+        s_amountDeposited[msg.sender][token] -= amountCollatoral;
+
+        emit CollatoralRedeemed(msg.sender, token, amountCollatoral);
+        bool success = IERC20(token).transfer(msg.sender, amountCollatoral);
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
+        _revertIfHealthOfAccountIsBroken(msg.sender);
     }
 
     function depositeCollatoral(
