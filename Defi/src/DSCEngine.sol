@@ -25,16 +25,26 @@ pragma solidity ^0.8.18;
 import {DefiProtocol} from "./DefiStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
 contract DSCEngine is ReentrancyGuard {
     error DSCEngine__ValueNonNegative();
     error DSCEngine__WrongArgumentsProvided();
     error DSCEngine__InvalidTokenAddress();
     error DSCEngine__TransferFailed();
+    error DSCEngine__LiquidAccount(uint val);
+    error DSCEngine__FailedToMint();
     ////////////////////////
     /// State Variables ////
     ////////////////////////
+    uint constant private ADDITIONAL_FEED_PRECISION = 1e8;
+    uint constant private PRECISION = 1e18;
+    uint constant private MIN_HEALTH_FACTOR= 1;
     mapping(address token => address collatoralToken) private s_priceFeed;
     mapping (address user => uint tokenMinted) private s_tokenMinted;
+    uint constant private LIQUIDATION_PRECISION = 100;
+    uint constant private LIQUIDATION_THRESHOLD = 50; // You need to be 200% collatoralized
+
     /**
      * @dev This is the collatoral deposited by the user 
      * colOwner -> Owner of the collatoral
@@ -103,31 +113,46 @@ contract DSCEngine is ReentrancyGuard {
         s_tokenMinted[msg.sender] += amountDscToMint;
 
         _revertIfHealthOfAccountIsBroken(msg.sender);
+
+        bool mint = i_dscToken.mint(msg.sender, amountDscToMint);
+        if (!mint) {
+            revert DSCEngine__FailedToMint();
+        }
     }
     /////////////////////////////////
     ///Internal/Private view Functions///
     ///////////////////////////////
 
     function _revertIfHealthOfAccountIsBroken(address user) internal view {
-
+        if (_healthOfAccount(user) < MIN_HEALTH_FACTOR){
+            revert DSCEngine__LiquidAccount(_healthOfAccount(user));
+        }
     } 
 
     function _healthOfAccount(address user) private view returns(uint) {
         (uint dscMintedValue, uint collatoralDepositedInUSD) = _getAccountDetails(user);
-    }
+        uint collatoralThreshold = (collatoralDepositedInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        
+        return (collatoralThreshold * PRECISION) / dscMintedValue;
+    }   
 
     /////////////////////////////////
     ///Public view  Functions    ///
     ///////////////////////////////
     function _getAccountDetails(address _user) public view returns(uint, uint) {
+        uint totalCollatoralDepositedInUsd;
         for(uint i= 0;  i< s_tokenAddress.length; i++) {
             address token = s_tokenAddress[i];
             uint amount = s_amountDeposited[_user][token];
-            getTokenPriceInUSD(token, amount);
+            totalCollatoralDepositedInUsd += getTokenPriceInUSD(token, amount);
         } 
+        return (s_tokenMinted[_user], totalCollatoralDepositedInUsd);
     }
 
     function getTokenPriceInUSD(address _token, uint _amount) public view returns(uint) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[_token]);
+        (,int256 price,,,) = priceFeed.latestRoundData();
 
+        return ((uint(price) * ADDITIONAL_FEED_PRECISION) * _amount) / PRECISION;
     }
 }
