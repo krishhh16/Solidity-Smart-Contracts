@@ -28,3 +28,6 @@
 [submodule "Airdrop and Signatures/lib/openzeppelin-contracts"]
 	path = Airdrop and Signatures/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "Airdrop and Signatures/lib/murky"]
+	path = Airdrop and Signatures/lib/murky
+	url = https://github.com/dmfxyz/murky
