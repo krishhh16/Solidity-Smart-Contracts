@@ -215,10 +215,7 @@ contract DSCEngine is ReentrancyGuard {
         return (collatoralThreshold * PRECISION) / dscMintedValue;
     }   
 
-    /////////////////////////////////
-    ///Public view  Functions    ///
-    ///////////////////////////////
-    function _getAccountDetails(address _user) public view returns(uint, uint) {
+    function _getAccountDetails(address _user) private view returns(uint, uint) {
         uint totalCollatoralDepositedInUsd;
         for(uint i= 0;  i< s_tokenAddress.length; i++) {
             address token = s_tokenAddress[i];
@@ -227,11 +224,19 @@ contract DSCEngine is ReentrancyGuard {
         } 
         return (s_tokenMinted[_user], totalCollatoralDepositedInUsd);
     }
+    /////////////////////////////////
+    ///Public view  Functions    ///
+    ///////////////////////////////
+
 
     function getTokenPriceInUSD(address _token, uint _amount) public view returns(uint) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[_token]);
         (,int256 price,,,) = priceFeed.latestRoundData();
 
         return ((uint(price) * ADDITIONAL_FEED_PRECISION) * _amount) / PRECISION;
+    }
+
+    function getCollateralTokens() external view returns(address[] memory) {
+        return s_tokenAddress;
     }
 }
