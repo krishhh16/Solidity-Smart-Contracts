@@ -21,7 +21,7 @@ contract AirDrop {
     }
 
     function claim(address _account, uint _amount, bytes32[] memory merkleProof ) external {
-        if (!s_hasCalimed[_account]) {
+        if (s_hasCalimed[_account]) {
             revert AirDrop__AlreadyClaimed();
         }
         bytes32 leaf = keccak256(abi.encode(keccak256(abi.encode(_account, _amount))));
