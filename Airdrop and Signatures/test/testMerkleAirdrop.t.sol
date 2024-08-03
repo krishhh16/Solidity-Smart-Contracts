@@ -10,6 +10,7 @@ contract TestMerkleAirdrop is Test {
     AirDrop airdrop;
     PainToken painToken;
     bytes32 ROOT = 0xaa5d581231e596618465a56aa0f5870ba6e20785fe436d5bfb82b08662ccc7c4;
+    address gasPayer;
     address user;
     uint userPrivateKey;    
 
@@ -25,13 +26,17 @@ contract TestMerkleAirdrop is Test {
         (airdrop, painToken) = deployer.run();
 
         (user, userPrivateKey) = makeAddrAndKey("user");
+        gasPayer = makeAddr("gasPayer");
     }
 
     function testUserCanClaim() external {
         uint startingBalance = painToken.balanceOf(user);
         
-        vm.prank(user);
-        airdrop.claim(user, STARTING_BALANCE, PROOF);
+        bytes32 digest = airdrop.getMessageHash(user, STARTING_BALANCE);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        vm.prank(gasPayer);
+        airdrop.claim(user, STARTING_BALANCE, PROOF, v, r, s);
 
         uint endingBalance = painToken.balanceOf(user);
         assertEq(endingBalance - startingBalance , STARTING_BALANCE);        

@@ -35,7 +35,7 @@ contract AirDrop is EIP712{
             revert AirDrop__AlreadyClaimed();
         }
 
-        if (!_VierifiedSignature(_account, _MessageHashWStruct(_account, _amount),v,r,s )){
+        if (!_VierifiedSignature(_account, getMessageHash(_account, _amount),v,r,s )){
             revert AirDrop__VerificationFailed();
         }
 
@@ -50,7 +50,7 @@ contract AirDrop is EIP712{
     }
 
 
-    function _MessageHashWStruct(address account, uint amount) public view returns (bytes32) {
+    function getMessageHash(address account, uint amount) public view returns (bytes32) {
         return _hashTypedDataV4(keccak256(
             abi.encode(
                 MESSAGE_STRUCT_HASH,
