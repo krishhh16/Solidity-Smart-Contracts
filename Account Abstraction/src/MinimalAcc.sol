@@ -13,10 +13,22 @@ contract MinimalAccount is IAccount, Ownable {
     IEntryPoint private immutable i_entryPoint;
 
     error MinimalAccount__InvalidEntryPoint();
+    error MinimalAccount__INvalidEntryPointOrOwner();
+    error MinimalAccount__FailedTransaction(bytes);
 
+    /**
+     * Modifiers
+     */
     modifier onlyEntryPoint() {
-        if (msg.sender != owner() ) {
+        if (msg.sender != address(i_entryPoint) ) {
             revert MinimalAccount__InvalidEntryPoint();
+        }
+        
+        _;
+    }
+    modifier onlyEntryPointOrOwner() {
+        if (msg.sender != address(i_entryPoint) && msg.sender != owner() ) {
+            revert MinimalAccount__INvalidEntryPointOrOwner();
         }
         
         _;
@@ -25,18 +37,39 @@ contract MinimalAccount is IAccount, Ownable {
         i_entryPoint = IEntryPoint(entryPoint);
     }
 
-    // if the validateUserOp is failed(With a return value of 0), then the operation that was supposed to happen shall not occurxz
+    /**
+     * External functions 
+     *  
+    */ 
+
+    // if the validateUserOp is failed(With a return value of 0), then the operation that was supposed to happen shall not occurs
+
+    receive() external payable {}
+
     function validateUserOp(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
-    ) external onlyEntryPoint  returns (uint256 validationData){
-        _verifySignature(userOp, userOpHash);
+    ) external onlyEntryPointOrOwner  returns (uint256 validationData){
+        validationData = _verifySignature(userOp, userOpHash);
 
         _prefund(missingAccountFunds);
     }
 
+    function execute(address desAddr, uint value, bytes calldata functionData) external onlyEntryPointOrOwner {
+        (bool success, bytes memory result) = desAddr.call{value: value}(functionData);
+    
+        if (!success) {
+            revert MinimalAccount__FailedTransaction(result);
+        }
+    }
 
+
+
+    /**
+     * Private & internal functions
+     * 
+     */
     function _prefund(uint missingAccountFunds) internal {
         if (missingAccountFunds > 0) {
             (bool success,) = payable(msg.sender).call{value: missingAccountFunds, gas: type(uint).max}("");
@@ -55,6 +88,8 @@ contract MinimalAccount is IAccount, Ownable {
         return SIG_VALIDATION_SUCCESS;
     }
 
-    
+    function getEntryPoint() external view returns (IEntryPoint) {
+        return i_entryPoint;
+    }
 
 }
