@@ -43,3 +43,6 @@
 [submodule "DAO/lib/openzeppelin-contracts"]
 	path = DAO/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "Abstraction Account/lib/account-abstraction"]
+	path = Abstraction Account/lib/account-abstraction
+	url = https://github.com/eth-infinitism/account-abstraction
