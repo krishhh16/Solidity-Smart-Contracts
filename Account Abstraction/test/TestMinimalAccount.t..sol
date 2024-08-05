@@ -34,7 +34,7 @@ contract TestMinimalAccount is Test{
         assertEq(usdc.balanceOf(address(minimalAcc)),AMOUNT);
     }
 
-    function testNonOwnerCannotExecuteCommand() external {
-
+    function testRecoverSignedOp() public view {
+        
     }
 }
